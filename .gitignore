@@ -41,5 +41,6 @@ vignettes/*.pdf
 # My list
 *.Rproj
 sandbox.Rmd
+notes.md
 .DS_Store
 *.csv
