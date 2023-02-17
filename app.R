@@ -259,9 +259,9 @@ ui <- fluidPage(
                                           multiple = FALSE,
                                           selectize = TRUE,
                               )
-                       ),
+                       )
                 )
-              ),
+              )
             ),
             
             
@@ -309,7 +309,7 @@ ui <- fluidPage(
             )
           ),
           plotOutput("midpoints_plot", width = "800px", height = "600px")
-        ),
+        )
         
         # tabPanel(
         #   title = "Allophones",
