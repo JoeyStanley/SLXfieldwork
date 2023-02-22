@@ -1,4 +1,6 @@
 
+# Preliminaries ----
+
 library(shiny)
 library(tidyverse)
 library(janitor)
@@ -6,7 +8,7 @@ library(stopwords)
 library(joeyr)
 
 
-
+## Process data ----
 process_data <- function(df) {
   df %>%
     clean_names() %>%
@@ -46,16 +48,22 @@ process_data <- function(df) {
     print() %>%
     return()
 }
+
+## Other Globals ----
   
 vowels <- c("FLEECE", "KIT", "FACE", "DRESS", "TRAP", "LOT", "THOUGHT", "STRUT", "GOAT", "FOOT", "GOOSE", "PRICE", "MOUTH", "CHOICE", "NURSE")
 stopwords <- stopwords(source = "marimo")
 allwords <- c("")
 
-# Define UI for application that draws a histogram
+
+# UI ----
+
 ui <- fluidPage(
   
   # Application title
   titlePanel("LING 580R Sociolinguistic Fieldwork: Acoustic Analysis"),
+  
+  ## Upload data sidebar ----
   
   sidebarLayout(
     sidebarPanel(width = 2,
@@ -73,14 +81,15 @@ ui <- fluidPage(
               
               tabsetPanel(
                 type = "pills",
+                
+                ## Main vowel plot ----
                 tabPanel(
                   title = "Main vowel plot",
-                  
-                  
                   
                   tabsetPanel(
                     type = "tabs",
                     
+                    ### Vowel selection ----
                     tabPanel(
                       title = "Vowels",
                       fluidRow(
@@ -102,66 +111,14 @@ ui <- fluidPage(
                                            multiple = TRUE,
                                            selectize = FALSE,
                                            size = 14))
-                        
-                        # column(3,
-                        #        selectInput(paste0("stress_", side),
-                        #                    label= h4("Stress"),
-                        #                    choices = c("Primary", "Secondary", "No Stress"),
-                        #                    selected = "Primary",
-                        #                    multiple=T,
-                        #                    selectize = F,
-                        #                    size=3,
-                        #                    width="100%"
-                        #        ),
-                        #        selectInput(paste0("norm_", side),
-                        #                    label= h4("Normalization"),
-                        #                    choices = c("None", "Lobanov", "Bark Difference Metric"),
-                        #                    width="100%"
-                        #        ),
-                        #        selectInput(paste0("trans_", side),
-                        #                    label = h4("Transcription System"),
-                        #                    choices = c("ARPABET", "SAMPA", "Plotnik", "Wells' Lexical Sets"), # IPA
-                        #                    selected = "Wells' Lexical Sets",
-                        #                    width="100%"
-                        #                    
-                        #        )
-                        # )
+                        # See GSV for code on stress, normalization, and transcription
                       )
                     ),
                     
-                    # tabPanel("Words",
-                    #          fluidRow(
-                    #            column(3,
-                    #                   # radioButtons("include_exclude",
-                    #                   #              label = h3(""),
-                    #                   #              choices = c("Exclude these words"   = "hide",
-                    #                   #                          "Only show these words" = "show"),
-                    #                   #              width = "100%"),
-                    #                   # actionButton("stopwords_btn",
-                    #                   #              label = "Default stop words",
-                    #                   #              width = "100%"),
-                    #                   # actionButton("clear_words_btn",
-                    #                   #              label="Clear list",
-                    #                   #              width = "100%")
-                    #            ),
-                    #            column(9,
-                    #                   fluidRow(
-                    #                     column(12,
-                    #                            selectInput("wordlist",
-                    #                                        label = h3(""),
-                    #                                        choices  = allwords,
-                    #                                        selected = stopwords,
-                    #                                        multiple  = TRUE,
-                    #                                        selectize = TRUE,
-                    #                                        width = "100%"
-                    #                            )
-                    #                     )
-                    #                   )
-                    #            )
-                    #          )
-                    # ),
+                    # Tab for words will go here eventually. 
+                    # See GSV for how to do that.
                     
-                    
+                    ### Plot elements ----
                     tabPanel(
                       title = "Plot",
                       
@@ -264,7 +221,7 @@ ui <- fluidPage(
                       )
                     ),
                     
-                    
+                    ### Plot customization ----
                     tabPanel(
                       title = "Customization",
                       
@@ -304,6 +261,7 @@ ui <- fluidPage(
                       )
                     ),
                     
+                    ### Download ----
                     tabPanel("Download",
                              fluidRow(
                                column(4,
@@ -341,42 +299,11 @@ ui <- fluidPage(
                              )
                     )
                   ),
+                  
+                  ### Display the main plot ----
                   plotOutput("midpoints_plot", width = "800px", height = "600px")
                 )
-                
-                # tabPanel(
-                #   title = "Allophones",
-                #   sidebarLayout(
-                #     sidebarPanel(
-                #       
-                #     ),
-                #     mainPanel(
-                #     )
-                #   )
-                # ),
-                # tabPanel(
-                #   title = "Trajectories",
-                #   sidebarLayout(
-                #     sidebarPanel(
-                #       
-                #     ),
-                #     mainPanel(
-                #       
-                #     )
-                #   )
-                # ),
-                # tabPanel(
-                #   title = "Other",
-                #   sidebarLayout(
-                #     sidebarPanel(
-                #       
-                #     ),
-                #     mainPanel(
-                #       
-                #     )
-                #   )
-                # ),
-                # )
+                # Future tab for trajectory plot goes here
               )
     )
   )
@@ -384,25 +311,11 @@ ui <- fluidPage(
 
 
 
+# Server ----
 
 server <- function(input, output) {
   
-  # Use the sample data. If the upload button is clicked, overwrite that.
-  # path_to_data <- "joey_darla.csv"
-  # observeEvent(input$process_uploaded_button, {
-  #   path_to_data <- input$uploaded_data$datapath
-  # })
-  # observeEvent(input$load_sample_button,      {
-  #   path_to_data <- "joey_darla.csv"
-  # })
-  # full_df <- reactive(path_to_data, {
-  #   process_data(path_to_data)
-  # })
-  
-  # full_df <- eventReactive(input$load_sample_button, {
-  #   read_csv(path_to_data, show_col_types = FALSE) %>%
-  #     process_data()
-  # })
+  # Loading sample data wasn't working. But that code would go here.
 
   full_df <- eventReactive(input$process_uploaded_button, {
     req(input$uploaded_data)
@@ -410,9 +323,7 @@ server <- function(input, output) {
       process_data()
   })
   
-  # allwords <- reactive({
-  #   sort(unique(full_df$word))
-  # })
+  ## Download handler ----
   
   output$fig_download <- downloadHandler(
     filename = function() { 
@@ -430,11 +341,14 @@ server <- function(input, output) {
   )
   
   
+  ## Generate the main plot ----
+  # Take that generated plot and push it to the output object.
+  # Note that having a separate function to generate and call the plot is better because of the downloading code.
   output$midpoints_plot <- renderPlot({
     generate_plot()
   })
   
-  
+  # A function for generating the plot.
   generate_plot <- function() {
     midpoint_df <- full_df() %>%
       filter(percent == 50,
