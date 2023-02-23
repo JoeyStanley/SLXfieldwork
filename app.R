@@ -4,6 +4,7 @@
 library(shiny)
 library(tidyverse)
 library(janitor)
+library(ggthemes)
 library(stopwords)
 library(joeyr)
 library(DT)
@@ -36,17 +37,17 @@ process_data <- function(df) {
     ungroup() %>%
     
     # OoO3 Normalization
-    group_by(speaker_id, phoneme) %>%
-    mutate(across(.cols = c(F1, F2), 
-                  .fns = c(`z` = scale, `log` = log10),
-                  .names = "{.col}_{.fn}")) %>%
+    # group_by(speaker_id, phoneme) %>%
+    # mutate(across(.cols = c(F1, F2),
+    #               .fns = c(`z` = scale, `log` = log10),
+    #               .names = "{.col}_{.fn}")) %>%
     # ungroup() %>%
     # norm_logmeans(c(F1_log, F2_log),
     #               .speaker_col = speaker_id,
     #               .vowel_col = phoneme) %>%
     
     # OoO4 Remove other data?
-    print() %>%
+    # print() %>%
     return()
 }
 
@@ -67,7 +68,7 @@ ui <- fluidPage(
   tabsetPanel(
     type = "pills",
     
-    # ## Upload data ----
+    ## Upload data ----
     tabPanel(
       title = "Data upload",
 
@@ -315,6 +316,8 @@ ui <- fluidPage(
               downloadButton("fig_download", "Download")
             )
           ) # end sidebarLayout
+          
+          ### The main plot itself ----
         ),
         mainPanel(
           width = 8,
@@ -327,43 +330,55 @@ ui <- fluidPage(
     # #tabPanel(title = "Trajectory plot"),
     # 
     # 
-    # ## Acoustic Analysis ----
-    # tabPanel(
-    #   title = "Acoustic analysis",
-    #   
-    #   tabsetPanel(
-    #     
-    #     tabPanel(
-    #       "vowel overlap",
-    #       sidebarLayout(
-    #         sidebarPanel(
-    #           width = 3,
-    #           selectInput("vowel_pair",
-    #                       label = h4("Vowel pair"),
-    #                       choices = c("cot-caught", "feel-fill", "fail-fell"),
-    #                       selected = "feel-fill",
-    #                       multiple = FALSE,
-    #                       selectize = FALSE,
-    #                       size = 4,
-    #           ),
-    #           hr(),
-    #           DT::dataTableOutput("pillai_pairs_summary")
-    #           # Add an explanation of what the selected vowel pair means.
-    #         ),
-    #         mainPanel(
-    #           # plot for reference
-    #           # pillai scores
-    #           
-    #           # textOutput("pillai_text")
-    #           
-    #         )
-    #       )
-    #     ),
-    #     tabPanel("vowel shifts")
-    #     
-    #   )
-    #   
-    # )
+    ## Acoustic Analysis ----
+    tabPanel(
+      title = "Acoustic analysis",
+      tabsetPanel(
+        tabPanel(
+          title = "vowel overlap",
+          sidebarLayout(
+            sidebarPanel(
+              width = 3,
+              selectInput("vowel_pair",
+                          label = h4("Vowel pair"),
+                          choices = c("cot-caught", "feel-fill", "fail-fell", 
+                                      "pull-pole", "pole-dull", "pull-dull",
+                                      "pin-pen"),
+                          selected = "feel-fill",
+                          multiple = FALSE,
+                          selectize = TRUE
+              ),
+              # Add an explanation of what the selected vowel pair means.
+              hr(),
+              tableOutput("pillai_pairs_summary"),
+              fluidRow(
+                column(9, textOutput("pillai_total_n_message")),
+                column(3, textOutput("pillai_total_n"))
+              ),
+              hr(),
+              fluidRow(
+                column(9, textOutput("pillai_threshold_message")),
+                column(3, textOutput("pillai_threshold"))
+              ),
+              hr(),
+              fluidRow(
+                column(9, textOutput("pillai_score_message")),
+                column(3, textOutput("pillai_score"))
+              ),
+              hr(),
+              fluidRow(
+                column(9, textOutput("pillai_p_message")),
+                column(3, textOutput("pillai_p"))
+              )
+            ),
+            mainPanel(
+              plotOutput("vowel_pair_plot", width = "800px", height = "600px")
+            )
+          )
+        ),
+        # tabPanel("vowel shifts")
+      )
+    )
     
     
   )
@@ -466,24 +481,76 @@ server <- function(input, output) {
   
   
   ## Pillai scores ----
-  output$pillai_pairs_summary <- DT::renderDataTable(DT::datatable({
-    this_df <- full_df() %>%
+  ### Pillai scores data ----
+  pillai_df <- reactive({
+    full_df() %>%
       filter(percent == 50,
              allophone %in% case_when(input$vowel_pair == "cot-caught" ~ c("BOT", "BOUGHT"),
                                       input$vowel_pair == "feel-fill"  ~ c("ZEAL", "GUILT"),
-                                      input$vowel_pair == "fail-fell"  ~ c("FLAIL", "SHELF"))) %>%
-      count(allophone)
-  }))
-  
-  # output$pillai_text <- renderText({
-  #   get_pillai()
-  # })
-  # 
-  # get_pillai <- function() {
-  #   
-  #   
-  # }
-  
+                                      input$vowel_pair == "fail-fell"  ~ c("FLAIL", "SHELF"),
+                                      input$vowel_pair == "pull-pole"  ~ c("WOLF", "JOLT"),
+                                      input$vowel_pair == "pole-dull"  ~ c("JOLT", "MULCH"),
+                                      input$vowel_pair == "pull-dull"  ~ c("WOLF", "MULCH"),
+                                      input$vowel_pair == "pin-pen"    ~ c("BIN", "BEN")),
+             !is.na(F1),
+             !is.na(F2))
+  })
+  ### Pillai data summary table ----
+  output$pillai_pairs_summary <- renderTable({
+    pillai_df() %>%
+      count(allophone, name = "number of tokens")
+  })
+  ### Pillai plot ----
+  output$vowel_pair_plot <- renderPlot({
+    group_means <- pillai_df() %>%
+      group_by(allophone) %>%
+      summarize(across(c(F1, F2), mean))
+    
+    ggplot(pillai_df(), aes(F2, F1, color = allophone)) + 
+      geom_text(aes(label = word)) +
+      stat_ellipse() + 
+      geom_text(data = group_means, aes(label = allophone), size = 10) + 
+      scale_color_ptol() + 
+      scale_x_reverse() + 
+      scale_y_reverse() + 
+      theme_minimal() + 
+      theme(legend.position = "none")
+  })
+  ### Pillai results ----
+  output$pillai_total_n <- renderPrint({  
+    cat(nrow(pillai_df()))
+  })
+  output$pillai_total_n_message <- renderPrint({
+    warning <- if_else(nrow(pillai_df()) < 30, 
+                       "(It's recommended that you have at least 30 tokens.)", 
+                       "")
+    cat(paste("Here is the total number of tokens you're using to calculate a Pillai score.", warning))
+  })
+  output$pillai_threshold <- renderPrint({
+    cat(round(exp(1)/(nrow(pillai_df())/2),3))
+  })
+  output$pillai_threshold_message <- renderPrint({
+    cat("Assuming your speaker is underlyingly merged, their Pillai score is expected to be below this value. This is based on how much data you have.")
+  })
+  output$pillai_score <- renderPrint({
+    pillai_df() %>%
+      summarize(pillai = pillai(cbind(F1, F2) ~ allophone)) %>%
+      pull() %>% 
+      round(3) %>%
+      cat()
+  })
+  output$pillai_score_message <- renderPrint({
+    cat("Here is the Pillai score. Values range from 0 (=complete overlap) to 1 (complete separation).")
+  })
+  output$pillai_p <- renderPrint({
+    p <- pillai_df() %>%
+      summarize(p = manova_p(cbind(F1, F2) ~ allophone)) %>%
+      pull()
+    cat(ifelse(p < 0.001, "< 0.001", round(p, 3)))
+  })
+  output$pillai_p_message <- renderPrint({
+    cat("Here is the p-value. If it's less than 0.05, it means the difference between the two vowels is statistically significant.")
+  })
 }
 
 # Run the application 
