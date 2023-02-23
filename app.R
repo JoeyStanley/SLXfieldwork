@@ -441,7 +441,7 @@ server <- function(input, output) {
   
   ## Export data ----
   output$export_processed <- downloadHandler(
-    filename = function() { "formants_processe.csv" },
+    filename = function() { "formants_processed.csv" },
     content  = function(file) {
       full_df() %>%
         write_csv(file = file)
