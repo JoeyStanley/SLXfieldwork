@@ -5,6 +5,8 @@ library(shiny)
 library(tidyverse)
 library(janitor)
 library(ggthemes)
+library(ggforce)
+library(concaveman)
 library(stopwords)
 library(joeyr)
 library(DT)
@@ -334,6 +336,8 @@ ui <- fluidPage(
     tabPanel(
       title = "Acoustic analysis",
       tabsetPanel(
+        
+        ### Vowel overlap ----
         tabPanel(
           title = "vowel overlap",
           sidebarLayout(
@@ -348,6 +352,8 @@ ui <- fluidPage(
                           multiple = FALSE,
                           selectize = TRUE
               ),
+              checkboxInput("pillai_reference_points", label = "Show reference points?", value = 1),
+              checkboxInput("pillai_vowel_space",      label = "Show vowel space", value = 1),
               # Add an explanation of what the selected vowel pair means.
               hr(),
               tableOutput("pillai_pairs_summary"),
@@ -506,7 +512,30 @@ server <- function(input, output) {
       group_by(allophone) %>%
       summarize(across(c(F1, F2), mean))
     
-    ggplot(pillai_df(), aes(F2, F1, color = allophone)) + 
+    # Elsewhere allophones, for the hull
+    vowel_space <- full_df() %>%
+      filter(percent == 50,
+             allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
+      group_by(allophone) %>%
+      summarize(across(c(F1, F2), mean))
+    # Reference points
+    reference_points <- vowel_space %>%
+      filter(allophone %in% c("BEET", "BOAT", "BOT", "BAT"))
+    
+    # Basic plot
+    p <- ggplot(pillai_df(), aes(F2, F1, color = allophone))
+    
+    if (input$pillai_reference_points) {
+      p <- p + 
+        geom_text(data = reference_points, aes(label = allophone), color = "gray20", size = 10)
+    }
+    if (input$pillai_vowel_space) {
+      p <- p + geom_mark_hull(data = vowel_space, aes(group = 1), color = "gray20")
+    }
+    
+    
+    
+    p + 
       geom_text(aes(label = word)) +
       stat_ellipse() + 
       geom_text(data = group_means, aes(label = allophone), size = 10) + 
@@ -515,6 +544,7 @@ server <- function(input, output) {
       scale_y_reverse() + 
       theme_minimal() + 
       theme(legend.position = "none")
+    
   })
   ### Pillai results ----
   output$pillai_total_n <- renderPrint({  
