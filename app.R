@@ -20,6 +20,7 @@ process_data <- function(df) {
            -matches("lobanov"), -b1, -b2, -b3,-t, -beg, -end, -matches("word_trans"), -matches("_word"), -n_formants) %>%
     rename_with(ucfirst, matches("f\\d")) %>%
     rename(phoneme = vowel) %>%
+    mutate(word = tolower(word)) %>%
     
     # Reshape 
     select(-F1, -F2, -F3) %>%
@@ -34,7 +35,11 @@ process_data <- function(df) {
     code_allophones(phoneme, .fol_seg = fol_seg, .pre_seg = pre_seg) %>%
     
     # OoO2 Outliers
-    group_by(speaker_id, phoneme) %>%
+    mutate(is_stopword = word %in% stopwords::stopwords(source = "marimo")) %>%
+    mutate(outlier_group = case_when(is_stopword ~ "stopword",
+                                     stress == 0 ~ "unstressed",
+                                     TRUE ~ allophone)) %>%
+    group_by(speaker_id, outlier_group) %>%
     filter(!find_outliers(F1, F2)) %>%
     ungroup() %>%
     
@@ -48,7 +53,8 @@ process_data <- function(df) {
     #               .speaker_col = speaker_id,
     #               .vowel_col = phoneme) %>%
     
-    # OoO4 Remove other data?
+  # OoO4 Remove other data?
+  filter(stress == 1) %>%
     # print() %>%
     return()
 }
