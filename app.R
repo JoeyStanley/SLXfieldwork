@@ -381,7 +381,7 @@ ui <- fluidPage(
                           multiple = FALSE,
                           selectize = TRUE
               ),
-              checkboxInput("pillai_reference_points", label = "Show reference points?", value = 1),
+              checkboxInput("pillai_reference_points", label = "Show reference points", value = 1),
               checkboxInput("pillai_vowel_space",      label = "Show vowel space", value = 1),
               # Add an explanation of what the selected vowel pair means.
               hr(),
@@ -435,6 +435,17 @@ server <- function(input, output) {
       process_data()
   })
   
+  midpoints_df <- eventReactive(input$process_uploaded_button, {
+    req(input$uploaded_data)
+    full_df() %>%
+      filter(percent == 50)
+  })
+  
+  trajectories_df <- eventReactive(input$process_uploaded_button, {
+    req(input$uploaded_data)
+    full_df()
+  })
+  
   output$show_all_data <- DT::renderDataTable(DT::datatable({ 
     full_df() 
   }))
@@ -481,10 +492,7 @@ server <- function(input, output) {
   ## Download image ----
   
   output$fig_download <- downloadHandler(
-    filename = function() { 
-      paste0(input$fig_filename, ".", tolower(input$fig_filetype))
-      # "test.txt"
-    },
+    filename = function() { paste0(input$fig_filename, ".", tolower(input$fig_filetype)) },
     content = function(file) {
       ggsave(file,
              plot   = generate_plot(),
@@ -505,15 +513,13 @@ server <- function(input, output) {
   
   # A function for generating the plot.
   generate_plot <- function() {
-    midpoint_df <- full_df() %>%
-      filter(percent == 50,
-             phoneme %in% input$vowels,
+    midpoint_df <- midpoints_df() %>%
+      filter(phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
     
     # Elsewhere allophones, for the hull
-    vowel_space <- full_df() %>%
-      filter(percent == 50,
-             allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
+    vowel_space <- midpoints_df() %>%
+      filter(allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
       group_by(allophone) %>%
       summarize(across(c(F1, F2), mean))
     # Reference points
@@ -573,9 +579,8 @@ server <- function(input, output) {
   ## Pillai scores ----
   ### Pillai scores data ----
   pillai_df <- reactive({
-    full_df() %>%
-      filter(percent == 50,
-             allophone %in% case_when(input$vowel_pair == "cot-caught" ~ c("BOT", "BOUGHT"),
+    midpoints_df() %>%
+      filter(allophone %in% case_when(input$vowel_pair == "cot-caught" ~ c("BOT", "BOUGHT"),
                                       input$vowel_pair == "feel-fill"  ~ c("ZEAL", "GUILT"),
                                       input$vowel_pair == "fail-fell"  ~ c("FLAIL", "SHELF"),
                                       input$vowel_pair == "pull-pole"  ~ c("WOLF", "JOLT"),
@@ -598,9 +603,8 @@ server <- function(input, output) {
       summarize(across(c(F1, F2), mean))
     
     # Elsewhere allophones, for the hull
-    vowel_space <- full_df() %>%
-      filter(percent == 50,
-             allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
+    vowel_space <- midpoints_df() %>%
+      filter(allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
       group_by(allophone) %>%
       summarize(across(c(F1, F2), mean))
     # Reference points
