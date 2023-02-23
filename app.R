@@ -165,7 +165,7 @@ ui <- fluidPage(
                        column(6,
                               checkboxInput(inputId = "show_points",
                                             label   = h3("Points"),
-                                            value   = 1),
+                                            value   = TRUE),
                               sliderInput(inputId = "points_alpha",
                                           label = "Opacity",
                                           min = 0,
@@ -183,7 +183,7 @@ ui <- fluidPage(
                        column(6,
                               checkboxInput(inputId = "show_ellipses",
                                             label   = h3("Ellipses"),
-                                            value   = T),
+                                            value   = TRUE),
                               sliderInput(inputId = "ellipses_alpha",
                                           label = "Opacity",
                                           min = 0,
@@ -239,6 +239,28 @@ ui <- fluidPage(
                                           value = 3,
                                           width="100%")
                        ),
+                )
+              ),
+              
+              hr(),
+              
+              fluidRow(
+                column(6,
+                       checkboxInput(inputId = "show_trajectories",
+                                     label   = h3("Trajectories"),
+                                     value   = FALSE),
+                       sliderInput(inputId = "trajectories_alpha",
+                                   label = "Opacity",
+                                   min = 0,
+                                   max = 1,
+                                   value = 1,
+                                   width="100%"),
+                       sliderInput(inputId = "trajectories_size",
+                                   label = "Size",
+                                   min = 0.01,
+                                   max = 2,
+                                   value = 0.5,
+                                   width="100%")
                 )
               ),
               
@@ -428,7 +450,7 @@ server <- function(input, output) {
   # Loading sample data wasn't working. But that code would go here.
   
   
-  ## Show all data ----
+  ## Get data (and subsets) ----
   full_df <- eventReactive(input$process_uploaded_button, {
     req(input$uploaded_data)
     read_csv(input$uploaded_data$datapath, show_col_types = FALSE) %>%
@@ -441,11 +463,12 @@ server <- function(input, output) {
       filter(percent == 50)
   })
   
-  trajectories_df <- eventReactive(input$process_uploaded_button, {
-    req(input$uploaded_data)
-    full_df()
-  })
+  # trajectories_df <- eventReactive(input$process_uploaded_button, {
+  #   req(input$uploaded_data)
+  #   full_df()
+  # })
   
+  ## Show all data ----
   output$show_all_data <- DT::renderDataTable(DT::datatable({ 
     full_df() 
   }))
@@ -517,11 +540,16 @@ server <- function(input, output) {
       filter(phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
     
+    trajectories_df <- full_df() %>%
+      filter(phoneme %in% input$vowels,
+             allophone_environment %in% input$environments)
+    
     # Elsewhere allophones, for the hull
     vowel_space <- midpoints_df() %>%
       filter(allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
       group_by(allophone) %>%
       summarize(across(c(F1, F2), mean))
+    
     # Reference points
     reference_points <- vowel_space %>%
       filter(allophone %in% c("BEET", "BOAT", "BOT", "BAT"))
@@ -557,6 +585,10 @@ server <- function(input, output) {
       p <- p + geom_text(aes_string(label = "word",
                                     color = input$color_variable), 
                          size = input$words_size, alpha = input$words_alpha)
+    }
+    if (input$show_trajectories) {
+      p <- p + geom_path(data = trajectories_df, aes_string(group = quote(vowel_id), color = input$color_variable),
+                         arrow = joey_arrow(), alpha = input$trajectories_alpha, size = input$trajectories_size) 
     }
     
     # Final elements
