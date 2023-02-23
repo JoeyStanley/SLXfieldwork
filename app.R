@@ -360,7 +360,7 @@ ui <- fluidPage(
                           label = h4("Vowel pair"),
                           choices = c("cot-caught", "feel-fill", "fail-fell", 
                                       "pull-pole", "pole-dull", "pull-dull",
-                                      "pin-pen"),
+                                      "pin-pen", "bat-ban"),
                           selected = "feel-fill",
                           multiple = FALSE,
                           selectize = TRUE
@@ -526,7 +526,8 @@ server <- function(input, output) {
                                       input$vowel_pair == "pull-pole"  ~ c("WOLF", "JOLT"),
                                       input$vowel_pair == "pole-dull"  ~ c("JOLT", "MULCH"),
                                       input$vowel_pair == "pull-dull"  ~ c("WOLF", "MULCH"),
-                                      input$vowel_pair == "pin-pen"    ~ c("BIN", "BEN")),
+                                      input$vowel_pair == "pin-pen"    ~ c("BIN", "BEN"),
+                                      input$vowel_pair == "bat-ban"    ~ c("BAT", "BAN")),
              !is.na(F1),
              !is.na(F2))
   })
