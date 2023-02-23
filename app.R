@@ -83,7 +83,7 @@ ui <- fluidPage(
     
     ## Upload data ----
     tabPanel(
-      title = "Data upload",
+      title = "Data",
 
       sidebarLayout(
 
