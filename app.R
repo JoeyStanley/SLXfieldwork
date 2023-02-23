@@ -21,6 +21,9 @@ process_data <- function(df) {
     rename_with(ucfirst, matches("f\\d")) %>%
     rename(phoneme = vowel) %>%
     mutate(word = tolower(word)) %>%
+    # Reclassify
+    mutate(phoneme = case_when(word %in% c("was", "gonna", "because", "wanna") ~ "AH",
+                               TRUE ~ phoneme)) %>%
     
     # Reshape 
     select(-F1, -F2, -F3) %>%
@@ -35,7 +38,8 @@ process_data <- function(df) {
     code_allophones(phoneme, .fol_seg = fol_seg, .pre_seg = pre_seg) %>%
     
     # OoO2 Outliers
-    mutate(is_stopword = word %in% stopwords::stopwords(source = "marimo")) %>%
+    mutate(is_stopword = word %in% c(stopwords::stopwords(source = "marimo"), 
+                                     "was", "gonna", "because", "wanna", "got")) %>%
     mutate(outlier_group = case_when(is_stopword ~ "stopword",
                                      stress == 0 ~ "unstressed",
                                      TRUE ~ allophone)) %>%
@@ -54,7 +58,8 @@ process_data <- function(df) {
     #               .vowel_col = phoneme) %>%
     
   # OoO4 Remove other data?
-  filter(stress == 1) %>%
+  filter(stress == 1,
+         !is_stopword) %>%
     # print() %>%
     return()
 }
@@ -225,6 +230,8 @@ ui <- fluidPage(
               
               fluidRow(
                 column(12,
+                       checkboxInput("main_reference_points", label = "Show reference points", value = 0),
+                       checkboxInput("main_vowel_space",      label = "Show vowel space", value = 1),
                        selectInput("color_variable",
                                    label = h4("One color per..."),
                                    choices = c("phoneme", "allophone"),
@@ -448,10 +455,26 @@ server <- function(input, output) {
              phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
     
+    # Elsewhere allophones, for the hull
+    vowel_space <- full_df() %>%
+      filter(percent == 50,
+             allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
+      group_by(allophone) %>%
+      summarize(across(c(F1, F2), mean))
+    # Reference points
+    reference_points <- vowel_space %>%
+      filter(allophone %in% c("BEET", "BOAT", "BOT", "BAT"))
+    
     # Basic elements
     p <- ggplot(midpoint_df, aes(F2, F1))
     
     # Optional elements
+    if (input$main_reference_points) {
+      p <- p + geom_text(data = reference_points, aes(label = allophone), color = "gray20", size = 10)
+    }
+    if (input$main_vowel_space) {
+      p <- p + geom_mark_hull(data = vowel_space, aes(group = 1), color = "gray20")
+    }
     if (input$show_points) {
       p <- p + geom_point(aes_string(color = input$color_variable),
                           size = input$points_size, alpha = input$points_alpha)
@@ -532,8 +555,7 @@ server <- function(input, output) {
     p <- ggplot(pillai_df(), aes(F2, F1, color = allophone))
     
     if (input$pillai_reference_points) {
-      p <- p + 
-        geom_text(data = reference_points, aes(label = allophone), color = "gray20", size = 10)
+      p <- p + geom_text(data = reference_points, aes(label = allophone), color = "gray20", size = 10)
     }
     if (input$pillai_vowel_space) {
       p <- p + geom_mark_hull(data = vowel_space, aes(group = 1), color = "gray20")
