@@ -114,7 +114,7 @@ ui <- fluidPage(
           downloadButton("export_processed", "Export this processed data", width = "30%"),
           hr(),
           p("If you would like to upload your data to VisibleVowels.org, your data has to be processed in a very specific way. Click the button below to get a compatible version of your data that can be read into that tool."),
-          downloadButton("export_for_vv", "Export for VisibleVowels.org", width = "30%"),
+          downloadButton("export_for_vv", "Export for VisibleVowels.org", width = "30%")
         ),
         mainPanel(
           DT::dataTableOutput("show_all_data")
@@ -150,7 +150,8 @@ ui <- fluidPage(
                           selected = c("elsewhere"),
                           multiple = TRUE,
                           selectize = FALSE,
-                          size = 10)
+                          size = 10
+              )
               # See GSV for code on stress, normalization, and transcription
             ),
             
@@ -197,7 +198,7 @@ ui <- fluidPage(
                                           value = 67,
                                           post = "%",
                                           width="100%")
-                       ),
+                       )
                 )
               ),
               
@@ -238,7 +239,7 @@ ui <- fluidPage(
                                           max = 10,
                                           value = 3,
                                           width="100%")
-                       ),
+                       )
                 )
               ),
               
@@ -275,22 +276,19 @@ ui <- fluidPage(
                                    choices = c("phoneme", "allophone"),
                                    selected = c("phoneme"),
                                    multiple = FALSE,
-                                   selectize = TRUE,
-                       ),
+                                   selectize = TRUE),
                        selectInput("ellipse_variable",
                                    label = h4("One ellipse per..."),
                                    choices = c("phoneme", "allophone"),
                                    selected = c("allophone"),
                                    multiple = FALSE,
-                                   selectize = TRUE,
-                       ),
+                                   selectize = TRUE),
                        selectInput("label_variable",
                                    label = h4("One label per..."),
                                    choices = c("phoneme", "allophone"),
                                    selected = c("allophone"),
                                    multiple = FALSE,
-                                   selectize = TRUE,
-                       )
+                                   selectize = TRUE)
                 )
               )
             ),
@@ -308,11 +306,13 @@ ui <- fluidPage(
                 column(6,
                        textInput("x_label",
                                  label = "x-axis label",
-                                 value = "F2")),
+                                 value = "F2")
+                ),
                 column(6,
                        textInput("y_label",
                                  label = "y-axis label",
-                                 value = "F1"))
+                                 value = "F1")
+                )
               ),
               hr(),
               sliderInput("base_size",
@@ -361,9 +361,8 @@ ui <- fluidPage(
                                    multiple = FALSE,
                                    selectize = F,
                                    size = 3,
-                                   width = "100%"
-                       )
-                ),
+                                   width = "100%")
+                )
               ),
               hr(),
               downloadButton("fig_download", "Download")
@@ -401,11 +400,13 @@ ui <- fluidPage(
                                       "pin-pen", "bat-ban"),
                           selected = "feel-fill",
                           multiple = FALSE,
-                          selectize = TRUE
-              ),
+                          selectize = TRUE),
+              
               checkboxInput("pillai_reference_points", label = "Show reference points", value = 1),
               checkboxInput("pillai_vowel_space",      label = "Show vowel space", value = 1),
+              
               # Add an explanation of what the selected vowel pair means.
+              
               hr(),
               tableOutput("pillai_pairs_summary"),
               fluidRow(
@@ -432,7 +433,7 @@ ui <- fluidPage(
               plotOutput("vowel_pair_plot", width = "800px", height = "600px")
             )
           )
-        ),
+        )
         # tabPanel("vowel shifts")
       )
     )
