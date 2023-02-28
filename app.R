@@ -15,11 +15,9 @@ library(ggthemes)
 library(ggforce)
 library(concaveman)
 
-install.packages("itsadug")
-
 # Statistics
-library(mgcv)
-library(itsadug)
+# library(mgcv)
+# library(itsadug)
 
 # Linguistics-specific
 library(stopwords)
@@ -275,12 +273,8 @@ ui <- fluidPage(
                 column(6,
                        selectInput("trajectory_type", 
                                    label = "Trajectory type",
-                                   choices = c("raw", "mean", "median", "smoothed"),
-                                   selected = "median"),
-                       # selectInput("trajectory_label_location", 
-                       #             label = "Label location",
-                       #             choices = c("onset", "mean", "offset"),
-                       #             selected = "mean"),
+                                   choices = c("raw", "mean", "median"),
+                                   selected = "median")
                        )
               ),
               
@@ -579,21 +573,21 @@ server <- function(input, output) {
         group_by(phoneme, allophone, percent) %>%
         summarize(across(c(F1, F2), .fns = median), .groups = "drop_last") %>% 
         mutate(plotting_group = allophone)
-    } else if (input$trajectory_type == "smoothed") {
-      summarized_trajectories_df <- trajectories_df %>%
-        pivot_longer(cols = c(F1, F2), names_to = "formant", values_to = "hz") %>%
-        group_by(phoneme, allophone, formant) %>%
-        nest() %>%
-        mutate(mdl = map(data, ~gam(hz ~ percent + s(percent, k = 4), data = .)),
-               preds = map(mdl, ~get_predictions(., cond = list(percent = 20:80),
-                                                 print.summary = FALSE,
-                                                 rm.ranef = FALSE))) %>%
-        select(-data, -mdl) %>%
-        unnest(preds) %>%
-        rename(hz = fit) %>%
-        select(-CI) %>%
-        pivot_wider(names_from = formant, values_from = hz) %>%
-        mutate(plotting_group = allophone)
+    # } else if (input$trajectory_type == "smoothed") {
+    #   summarized_trajectories_df <- trajectories_df %>%
+    #     pivot_longer(cols = c(F1, F2), names_to = "formant", values_to = "hz") %>%
+    #     group_by(phoneme, allophone, formant) %>%
+    #     nest() %>%
+    #     mutate(mdl = map(data, ~gam(hz ~ percent + s(percent, k = 4), data = .)),
+    #            preds = map(mdl, ~get_predictions(., cond = list(percent = 20:80),
+    #                                              print.summary = FALSE,
+    #                                              rm.ranef = FALSE))) %>%
+    #     select(-data, -mdl) %>%
+    #     unnest(preds) %>%
+    #     rename(hz = fit) %>%
+    #     select(-CI) %>%
+    #     pivot_wider(names_from = formant, values_from = hz) %>%
+    #     mutate(plotting_group = allophone)
     }
     
     # Labels (mean for points, onset for trajectories)
