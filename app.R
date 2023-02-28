@@ -35,6 +35,7 @@ process_data <- function(df) {
     rowid_to_column("vowel_id") %>%
     # Reclassify
     mutate(phoneme = case_when(word %in% c("was", "gonna", "because", "wanna") ~ "AH",
+                               word %in% c("twenty") ~ "AH",
                                TRUE ~ phoneme)) %>%
     
     # Reshape 
@@ -51,7 +52,7 @@ process_data <- function(df) {
     
     # OoO2 Outliers
     mutate(is_stopword = word %in% c(stopwords::stopwords(source = "marimo"), 
-                                     "was", "gonna", "because", "wanna", "got")) %>%
+                                     "was", "gonna", "because", "wanna", "got", "mh")) %>%
     mutate(outlier_group = case_when(is_stopword ~ "stopword",
                                      stress == 0 ~ "unstressed",
                                      TRUE ~ allophone)) %>%
@@ -408,9 +409,11 @@ ui <- fluidPage(
               width = 3,
               selectInput("vowel_pair",
                           label = h4("Vowel pair"),
-                          choices = c("cot-caught", "feel-fill", "fail-fell", 
-                                      "pull-pole", "pole-dull", "pull-dull",
-                                      "pin-pen", "bat-ban"),
+                          choices = list("prelateral" = c("feel-fill", "fail-fell", "pull-pole", "pole-dull", "pull-dull"),
+                                         # "prerhotic"  = c("Mary-merry", "merry-marry", "Mary-marry", "north/force-card"),
+                                         "prenasal"   = c("pin-pen", "bat-ban"),
+                                         "prevelar"   = c("vague-beg", "vague-bag", "beg-bag", "beg-bet", "bag-bat"),
+                                         "other"      = c("cot-caught", "goose-fronting")),
                           selected = "feel-fill",
                           multiple = FALSE,
                           selectize = TRUE),
@@ -670,14 +673,28 @@ server <- function(input, output) {
   ### Pillai scores data ----
   pillai_df <- reactive({
     midpoints_df() %>%
-      filter(allophone %in% case_when(input$vowel_pair == "cot-caught" ~ c("BOT", "BOUGHT"),
-                                      input$vowel_pair == "feel-fill"  ~ c("ZEAL", "GUILT"),
+      filter(allophone %in% case_when(input$vowel_pair == "feel-fill"  ~ c("ZEAL",  "GUILT"),
                                       input$vowel_pair == "fail-fell"  ~ c("FLAIL", "SHELF"),
-                                      input$vowel_pair == "pull-pole"  ~ c("WOLF", "JOLT"),
-                                      input$vowel_pair == "pole-dull"  ~ c("JOLT", "MULCH"),
-                                      input$vowel_pair == "pull-dull"  ~ c("WOLF", "MULCH"),
-                                      input$vowel_pair == "pin-pen"    ~ c("BIN", "BEN"),
-                                      input$vowel_pair == "bat-ban"    ~ c("BAT", "BAN")),
+                                      input$vowel_pair == "pull-pole"  ~ c("WOLF",  "JOLT"),
+                                      input$vowel_pair == "pole-dull"  ~ c("JOLT",  "MULCH"),
+                                      input$vowel_pair == "pull-dull"  ~ c("WOLF",  "MULCH"),
+                                      
+                                      # input$vowel_pair == "Mary-merry"  ~ c("WOLF",  "MULCH"),
+                                      # input$vowel_pair == "merry-marry"  ~ c("WOLF",  "MULCH"),
+                                      # input$vowel_pair == "Mary-marry"  ~ c("WOLF",  "MULCH"),
+                                      # input$vowel_pair == "north/force-card"  ~ c("WOLF",  "MULCH"),
+                                      
+                                      input$vowel_pair == "pin-pen"    ~ c("BIN",   "BEN"),
+                                      input$vowel_pair == "bat-ban"    ~ c("BAT",   "BAN"),
+                                      
+                                      input$vowel_pair == "vague-beg"  ~ c("VAGUE", "BEG"),
+                                      input$vowel_pair == "vague-bag"  ~ c("VAGUE", "BAG"),
+                                      input$vowel_pair == "beg-bag"    ~ c("BEG",   "BAG"),
+                                      input$vowel_pair == "beg-bet"    ~ c("BEG",   "BET"),
+                                      input$vowel_pair == "bag-bat"    ~ c("BAG",   "BAT"),
+                                      
+                                      input$vowel_pair == "cot-caught"     ~ c("BOT",  "BOUGHT"), 
+                                      input$vowel_pair == "goose-fronting" ~ c("TOOT", "BOOT")),
              !is.na(F1),
              !is.na(F2))
   })
