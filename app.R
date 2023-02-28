@@ -486,7 +486,7 @@ server <- function(input, output) {
   output$export_for_vv <- downloadHandler(
     filename = function() { "formants_forVisibleVowels.xlsx" },
     content = function(file) { 
-      vv <- df %>%
+      vv <- full_df() %>%
         filter(!phoneme == "NURSE") %>%
         select(`speaker` = speaker_id, `vowel` = phoneme, vowel_id, percent, `duration` = dur, `time` = t, F1, F2) %>%
         
