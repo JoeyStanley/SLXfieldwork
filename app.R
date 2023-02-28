@@ -15,6 +15,12 @@ library(ggthemes)
 library(ggforce)
 library(concaveman)
 
+install.packages("itsadug")
+
+# Statistics
+library(mgcv)
+library(itsadug)
+
 # Linguistics-specific
 library(stopwords)
 library(joeyr)
@@ -128,6 +134,7 @@ ui <- fluidPage(
       
       sidebarLayout(
         sidebarPanel(
+          style = "height: 90vh; overflow-y: auto;", # https://www.r-bloggers.com/2022/06/scrollbar-for-the-shiny-sidebar/
           width = 4,
           tabsetPanel(
             type = "tabs",
@@ -246,10 +253,12 @@ ui <- fluidPage(
               hr(),
               
               fluidRow(
-                column(6,
+                column(12,
                        checkboxInput(inputId = "show_trajectories",
                                      label   = h3("Trajectories"),
-                                     value   = FALSE),
+                                     value   = FALSE)
+                ),
+                column(6,
                        sliderInput(inputId = "trajectories_alpha",
                                    label = "Opacity",
                                    min = 0,
@@ -260,9 +269,19 @@ ui <- fluidPage(
                                    label = "Size",
                                    min = 0.01,
                                    max = 2,
-                                   value = 0.5,
+                                   value = 1,
                                    width="100%")
-                )
+                ),
+                column(6,
+                       selectInput("trajectory_type", 
+                                   label = "Trajectory type",
+                                   choices = c("raw", "mean", "median", "smoothed"),
+                                   selected = "median"),
+                       # selectInput("trajectory_label_location", 
+                       #             label = "Label location",
+                       #             choices = c("onset", "mean", "offset"),
+                       #             selected = "mean"),
+                       )
               ),
               
               hr(),
@@ -537,6 +556,8 @@ server <- function(input, output) {
   
   # A function for generating the plot.
   generate_plot <- function() {
+    
+    ### Prep the data ----
     midpoint_df <- midpoints_df() %>%
       filter(phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
@@ -544,6 +565,46 @@ server <- function(input, output) {
     trajectories_df <- full_df() %>%
       filter(phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
+    
+    # Get different summaries of the data for trajectories.
+    summarized_trajectories_df <- trajectories_df %>%
+      mutate(plotting_group = vowel_id)
+    if (input$trajectory_type == "mean") {
+      summarized_trajectories_df <- trajectories_df %>%
+        group_by(phoneme, allophone, percent) %>%
+        summarize(across(c(F1, F2), .fns = mean), .groups = "drop_last") %>% 
+        mutate(plotting_group = allophone)
+    } else if (input$trajectory_type == "median") {
+      summarized_trajectories_df <- trajectories_df %>%
+        group_by(phoneme, allophone, percent) %>%
+        summarize(across(c(F1, F2), .fns = median), .groups = "drop_last") %>% 
+        mutate(plotting_group = allophone)
+    } else if (input$trajectory_type == "smoothed") {
+      summarized_trajectories_df <- trajectories_df %>%
+        pivot_longer(cols = c(F1, F2), names_to = "formant", values_to = "hz") %>%
+        group_by(phoneme, allophone, formant) %>%
+        nest() %>%
+        mutate(mdl = map(data, ~gam(hz ~ percent + s(percent, k = 4), data = .)),
+               preds = map(mdl, ~get_predictions(., cond = list(percent = 20:80),
+                                                 print.summary = FALSE,
+                                                 rm.ranef = FALSE))) %>%
+        select(-data, -mdl) %>%
+        unnest(preds) %>%
+        rename(hz = fit) %>%
+        select(-CI) %>%
+        pivot_wider(names_from = formant, values_from = hz) %>%
+        mutate(plotting_group = allophone)
+    }
+    
+    # Labels (mean for points, onset for trajectories)
+    if (input$show_trajectories & input$trajectory_type != "raw") {
+      labels_df <- summarized_trajectories_df %>%
+        filter(percent == min(percent))
+    } else{
+      labels_df <- midpoint_df %>%
+        group_by(phoneme, allophone) %>%
+        summarize(across(matches("F\\d"), mean), .groups = "drop_last")
+    }
     
     # Elsewhere allophones, for the hull
     vowel_space <- midpoints_df() %>%
@@ -555,10 +616,10 @@ server <- function(input, output) {
     reference_points <- vowel_space %>%
       filter(allophone %in% c("BEET", "BOAT", "BOT", "BAT"))
     
-    # Basic elements
+    ### Basic elements ----
     p <- ggplot(midpoint_df, aes(F2, F1))
     
-    # Optional elements
+    ### Optional elements ----
     if (input$main_reference_points) {
       p <- p + geom_text(data = reference_points, aes(label = allophone), color = "gray20", size = 10)
     }
@@ -574,11 +635,8 @@ server <- function(input, output) {
                             level = input$ellipses_size/100, alpha = input$ellipses_alpha)
     }
     if (input$show_means) {
-      midpoint_labels <- midpoint_df %>%
-        group_by(phoneme, allophone) %>%
-        summarize(across(matches("F\\d"), mean), .groups = "drop_last")
       p <- p +
-        geom_text(data = midpoint_labels, 
+        geom_text(data = labels_df, 
                   aes_string(color = input$color_variable, label = input$label_variable), 
                   size = input$means_size, alpha = input$means_alpha)
     }
@@ -588,11 +646,16 @@ server <- function(input, output) {
                          size = input$words_size, alpha = input$words_alpha)
     }
     if (input$show_trajectories) {
-      p <- p + geom_path(data = trajectories_df, aes_string(group = quote(vowel_id), color = input$color_variable),
-                         arrow = joey_arrow(), alpha = input$trajectories_alpha, size = input$trajectories_size) 
+      p <- p + geom_path(data = summarized_trajectories_df, aes_string(group = quote(plotting_group), color = input$color_variable),
+                         arrow = joey_arrow(), alpha = input$trajectories_alpha, linewidth = input$trajectories_size)
     }
+    # if (!is.na(input$trajectory_label_location)) {
+    #   p <- p + geom_text(data = trajectory_labels_df,
+    #                      aes_string(color = input$color_variable, label = input$label_variable),
+    #                      size = input$means_size, alpha = input$means_alpha)
+    # }
     
-    # Final elements
+    ### Final elements----
     p <- p +
       scale_x_reverse() +
       scale_y_reverse() +
