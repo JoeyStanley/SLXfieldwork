@@ -138,6 +138,19 @@ ui <- fluidPage(
           tabsetPanel(
             type = "tabs",
             
+            ### Speaker selection ----
+            tabPanel(
+              title = "Speakers",
+              selectInput("speaker_selection",
+                          label = h4("Speaker"),
+                          choices = "no speaker",
+                          multiple = TRUE,
+                          selectize = FALSE,
+                          size = 20
+              )
+            ),
+            
+            
             ### Vowel selection ----
             tabPanel(
               title = "Vowels",
@@ -462,7 +475,7 @@ ui <- fluidPage(
 
 # Server ----
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   # Loading sample data wasn't working. But that code would go here.
   
@@ -528,6 +541,18 @@ server <- function(input, output) {
     }
   )
   
+  ## Update UI ----
+  observe({
+    list_of_speakers <- full_df() %>%
+      pull(speaker_id) %>%
+      unique()
+
+    updateSelectInput(session, "speaker_selection",
+                      choices = list_of_speakers,
+                      selected = head(list_of_speakers, 1)
+    )
+  })
+  
   
   ## Download image ----
   
@@ -556,11 +581,13 @@ server <- function(input, output) {
     
     ### Prep the data ----
     midpoint_df <- midpoints_df() %>%
-      filter(phoneme %in% input$vowels,
+      filter(speaker_id %in% input$speaker_selection,
+             phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
     
     trajectories_df <- full_df() %>%
-      filter(phoneme %in% input$vowels,
+      filter(speaker_id %in% input$speaker_selection,,
+             phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
     
     # Get different summaries of the data for trajectories.
@@ -673,7 +700,8 @@ server <- function(input, output) {
   ### Pillai scores data ----
   pillai_df <- reactive({
     midpoints_df() %>%
-      filter(allophone %in% case_when(input$vowel_pair == "feel-fill"  ~ c("ZEAL",  "GUILT"),
+      filter(speaker_id %in% input$speaker_selection,
+             allophone %in% case_when(input$vowel_pair == "feel-fill"  ~ c("ZEAL",  "GUILT"),
                                       input$vowel_pair == "fail-fell"  ~ c("FLAIL", "SHELF"),
                                       input$vowel_pair == "pull-pole"  ~ c("WOLF",  "JOLT"),
                                       input$vowel_pair == "pole-dull"  ~ c("JOLT",  "MULCH"),
