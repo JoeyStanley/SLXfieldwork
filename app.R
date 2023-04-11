@@ -16,12 +16,15 @@ library(ggforce)
 library(concaveman)
 
 # Statistics
-# library(mgcv)
-# library(itsadug)
+library(mgcv)
+library(itsadug)
 
 # Linguistics-specific
 library(stopwords)
 library(joeyr)
+
+# Increase max upload size from 5MG to 50MB: https://stackoverflow.com/questions/18037737/how-to-change-maximum-upload-size-exceeded-restriction-in-shiny-and-save-user
+options(shiny.maxRequestSize=50*1024^2)
 
 ## Process data ----
 process_data <- function(df) {
@@ -287,7 +290,7 @@ ui <- fluidPage(
                 column(6,
                        selectInput("trajectory_type", 
                                    label = "Trajectory type",
-                                   choices = c("raw", "mean", "median"),
+                                   choices = c("raw", "mean", "median", "smoothed"),
                                    selected = "median")
                        )
               ),
@@ -493,10 +496,10 @@ server <- function(input, output, session) {
       filter(percent == 50)
   })
   
-  # trajectories_df <- eventReactive(input$process_uploaded_button, {
-  #   req(input$uploaded_data)
-  #   full_df()
-  # })
+  trajectories_df <- eventReactive(input$process_uploaded_button, {
+    req(input$uploaded_data)
+    full_df()
+  })
   
   ## Show all data ----
   output$show_all_data <- DT::renderDataTable(DT::datatable({ 
@@ -603,21 +606,21 @@ server <- function(input, output, session) {
         group_by(phoneme, allophone, percent) %>%
         summarize(across(c(F1, F2), .fns = median), .groups = "drop_last") %>% 
         mutate(plotting_group = allophone)
-    # } else if (input$trajectory_type == "smoothed") {
-    #   summarized_trajectories_df <- trajectories_df %>%
-    #     pivot_longer(cols = c(F1, F2), names_to = "formant", values_to = "hz") %>%
-    #     group_by(phoneme, allophone, formant) %>%
-    #     nest() %>%
-    #     mutate(mdl = map(data, ~gam(hz ~ percent + s(percent, k = 4), data = .)),
-    #            preds = map(mdl, ~get_predictions(., cond = list(percent = 20:80),
-    #                                              print.summary = FALSE,
-    #                                              rm.ranef = FALSE))) %>%
-    #     select(-data, -mdl) %>%
-    #     unnest(preds) %>%
-    #     rename(hz = fit) %>%
-    #     select(-CI) %>%
-    #     pivot_wider(names_from = formant, values_from = hz) %>%
-    #     mutate(plotting_group = allophone)
+    } else if (input$trajectory_type == "smoothed") {
+      summarized_trajectories_df <- trajectories_df %>%
+        pivot_longer(cols = c(F1, F2), names_to = "formant", values_to = "hz") %>%
+        group_by(phoneme, allophone, formant) %>%
+        nest() %>%
+        mutate(mdl = map(data, ~gam(hz ~ percent + s(percent, k = 4), data = .)),
+               preds = map(mdl, ~get_predictions(., cond = list(percent = 20:80),
+                                                 print.summary = FALSE,
+                                                 rm.ranef = FALSE))) %>%
+        select(-data, -mdl) %>%
+        unnest(preds) %>%
+        rename(hz = fit) %>%
+        select(-CI) %>%
+        pivot_wider(names_from = formant, values_from = hz) %>%
+        mutate(plotting_group = allophone)
     }
     
     # Labels (mean for points, onset for trajectories)
