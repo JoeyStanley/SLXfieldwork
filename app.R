@@ -295,6 +295,7 @@ ui <- fluidPage(
                        )
               ),
               
+              
               hr(),
               
               fluidRow(
