@@ -24,8 +24,7 @@ library(stopwords)
 library(joeyr)
 
 # Increase max upload size from 5MG to 50MB: https://stackoverflow.com/questions/18037737/how-to-change-maximum-upload-size-exceeded-restriction-in-shiny-and-save-user
-options(shiny.maxRequestSize=50*1024^2,
-        dplyr.summarise.inform = FALSE)
+options(shiny.maxRequestSize=50*1024^2)
 
 ## Process data ----
 process_data <- function(df) {
@@ -640,7 +639,7 @@ server <- function(input, output, session) {
       filter(speaker_id %in% input$speaker_selection,
              allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
       group_by(speaker_id, allophone) %>%
-      summarize(across(c(F1, F2), mean))
+      summarize(across(c(F1, F2), mean), .groups = "drop_last")
     
     # Reference points
     reference_points <- vowel_space %>%
@@ -742,13 +741,13 @@ server <- function(input, output, session) {
   output$vowel_pair_plot <- renderPlot({
     group_means <- pillai_df() %>%
       group_by(allophone) %>%
-      summarize(across(c(F1, F2), mean))
+      summarize(across(c(F1, F2), mean), .groups = "drop_last")
     
     # Elsewhere allophones, for the hull
     vowel_space <- midpoints_df() %>%
       filter(allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
       group_by(allophone) %>%
-      summarize(across(c(F1, F2), mean))
+      summarize(across(c(F1, F2), mean), .groups = "drop_last")
     # Reference points
     reference_points <- vowel_space %>%
       filter(allophone %in% c("BEET", "BOAT", "BOT", "BAT"))
@@ -794,7 +793,7 @@ server <- function(input, output, session) {
   })
   output$pillai_score <- renderPrint({
     pillai_df() %>%
-      summarize(pillai = pillai(cbind(F1, F2) ~ allophone)) %>%
+      summarize(pillai = pillai(cbind(F1, F2) ~ allophone), .groups = "drop_last") %>%
       pull() %>% 
       round(3) %>%
       cat()
@@ -804,7 +803,7 @@ server <- function(input, output, session) {
   })
   output$pillai_p <- renderPrint({
     p <- pillai_df() %>%
-      summarize(p = manova_p(cbind(F1, F2) ~ allophone)) %>%
+      summarize(p = manova_p(cbind(F1, F2) ~ allophone), .groups = "drop_last") %>%
       pull()
     cat(ifelse(p < 0.001, "< 0.001", round(p, 3)))
   })
