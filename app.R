@@ -55,7 +55,7 @@ process_data <- function(df) {
     
     # OoO2 Outliers
     mutate(is_stopword = word %in% c(stopwords::stopwords(source = "marimo"), 
-                                     "was", "gonna", "because", "wanna", "got", "mh")) %>%
+                                     "was", "gonna", "because", "wanna", "got", "mh", "kinda")) %>%
     mutate(outlier_group = case_when(is_stopword ~ "stopword",
                                      stress == 0 ~ "unstressed",
                                      TRUE ~ allophone)) %>%
