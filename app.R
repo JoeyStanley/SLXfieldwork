@@ -24,7 +24,8 @@ library(stopwords)
 library(joeyr)
 
 # Increase max upload size from 5MG to 50MB: https://stackoverflow.com/questions/18037737/how-to-change-maximum-upload-size-exceeded-restriction-in-shiny-and-save-user
-options(shiny.maxRequestSize=50*1024^2)
+options(shiny.maxRequestSize=50*1024^2,
+        dplyr.summarise.inform = FALSE)
 
 ## Process data ----
 process_data <- function(df) {
@@ -590,7 +591,7 @@ server <- function(input, output, session) {
              allophone_environment %in% input$environments)
     
     trajectories_df <- full_df() %>%
-      filter(speaker_id %in% input$speaker_selection,,
+      filter(speaker_id %in% input$speaker_selection,
              phoneme %in% input$vowels,
              allophone_environment %in% input$environments)
     
@@ -636,13 +637,15 @@ server <- function(input, output, session) {
     
     # Elsewhere allophones, for the hull
     vowel_space <- midpoints_df() %>%
-      filter(allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
-      group_by(allophone) %>%
+      filter(speaker_id %in% input$speaker_selection,
+             allophone %in% c("BEET", "BIT", "BAIT", "BET", "BAT", "BOT", "BOUGHT", "BOAT", "PUT", "BOOT")) %>%
+      group_by(speaker_id, allophone) %>%
       summarize(across(c(F1, F2), mean))
     
     # Reference points
     reference_points <- vowel_space %>%
-      filter(allophone %in% c("BEET", "BOAT", "BOT", "BAT"))
+      filter(speaker_id %in% input$speaker_selection,
+             allophone %in% c("BEET", "BOAT", "BOT", "BAT")) 
     
     ### Basic elements ----
     p <- ggplot(midpoint_df, aes(F2, F1))
