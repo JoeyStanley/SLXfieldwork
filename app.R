@@ -130,11 +130,11 @@ ui <- page_navbar(
   
   
   ## Main vowel plot ----
-  nav_panel("Main Vowel Plot", 
+  nav_panel("Vowel Plot", 
   
   
     tabPanel(
-      title = "Main vowel plot",
+      title = "Vowel plot",
 
       sidebarLayout(
         sidebarPanel(
@@ -469,6 +469,67 @@ ui <- page_navbar(
               )
             )
             # tabPanel("vowel shifts")
+  ),
+  
+  ## About Page ----
+  # nav_spacer(),
+  nav_menu("About", 
+           nav_panel("Background",
+                     tags$h2("Background"),
+                     tags$p("Pipeline started off as a tool for students in my Sociolinguistic Fieldwork 
+                        course in Winter 2023 to quickly view data they processed with DARLA. I'm not super 
+                        satisifed with the default plot that DARLA provides, but I couldn't teach all the skills 
+                        necessary to make a vowel plot in R. So instead, I made this app so that I could 
+                        do it for them."),
+                     tags$p("As it turns out, I have students use DARLA in several classes, including \"Sounds of 
+                       Language\" and \"Linguistics Tools\". Besides in formal instruction, I have sometimes 
+                       directed students towards Pipeline if they are particularly interested in vowel plots. 
+                       I myself have even used for quick-and-dirty looks at brand new data."),
+                     tags$p("In Fall 2025, I decided that others might benefit from using this app. I gave it the 
+                     name \"Pipeline\", partly in reference to the pipeline of data processing steps that it 
+                     does under the hood, and partly because I play the organ and I wanted to add a pipe organ 
+                     motif to the site. I intend to actually \"go public\" with this site by presenting it at 
+                     NWAV54 in 2026 and submitting an article to", em("Linguistics Vanguard", .noWS = "after"), ".", )
+           ),
+           nav_panel("Citation",
+                     tags$h2("Citation"),
+                     tags$p("As of November 2025, there is no citation for this tool. However, it does use some important tools under the hood that you should be aware of. Please consider which software and ideas you use when analyzing your data here and cite them in your work."),
+                     tags$p("If you use DARLA, please see", 
+                            tags$a(href = "http://darla.dartmouth.edu/cite", "DARLA's citation guidelines"), 
+                            "for how to cite it properly."),
+                     tags$p("When you process the data in this site, there are several things that happen. Currently, the user has no control over these processes. Here is sample language for how to mention everything it uses."),
+                     tags$blockquote("Data processing followed the order of operations recommended in Stanley (2022). 
+                                     First, allophones were classified using the code_allophones function in the joeyr R package (Stanley 2021). 
+                                     Then, outliers are removed using the Modified Mahalnobis Distance described in Stanley (2020).
+                                     Finally, the stopwords that were removed were the ones in Kohei Watanabe's list found in the stopwords R package (Benoit, Murh, & Watanabe 2021)."),
+                     # normalization procedures, tidynorm
+                     # ggplot2, tidyverse, shiny, 
+                     # joeyr, Wells lexical sets, pillai scores
+                     tags$h3("References"),
+                     tags$ul(
+                       tags$li("Benoit, Kenneth, David Muhr, & Kohei Watanabe (2021). stopwords: Multilingual Stopword Lists (R package version", as.character(packageVersion("stopwords")), ").",
+                               tags$a(href = "https://cran.r-project.org/web/packages/stopwords/index.html", "10.32614/CRAN.package.stopwords", .noWS = "after"), ".", .noWS = "outside"),
+                       tags$li("Stanley, Joseph A. (2020).
+                            \"The Absence of a Religiolect among Latter-day Saints in Southwest Washington.\"
+                            In Valerie Fridland, Alicia Wassink, Lauren Hall-Lew, & Tyler Kendall (eds.)",
+                              tags$em("Speech in the Western States Volume III: Understudied Dialects"),
+                              "(Publication of the American Dialect Society 105), 95–122. Durham, NC: Duke University Press. DOI: ",
+                              tags$a(href = "https://doi.org/10.1215/00031283-8820642", "10.1215/00031283-8820642", .noWS = "after"), "."),
+                       tags$li("Stanley, Joseph A. (2021). joeyr: Functions for Vowel Data (R package version", as.character(packageVersion("joeyr")), ").",
+                               tags$a(href = "https://joeystanley.github.io/joeyr/", "https://joeystanley.github.io/joeyr/", .noWS = "after"), "."),
+                       tags$li("Stanley, Joseph A. (2022). 
+                            \"Order of Operations in Sociophonetic Analysis.\",", 
+                              tags$em("University of Pennsylvania Working Papers in Linguistics", .noWS = "after"), 
+                              ": Vol. 28: Iss. 2, Article 17. Available at:", 
+                              tags$a(href = "https://repository.upenn.edu/pwpl/vol28/iss2/17", "https://repository.upenn.edu/pwpl/vol28/iss2/17", .noWS = "after"), ".")
+                     )
+                     ),
+           nav_panel("News and Updates",
+                     "To be added"),
+           nav_panel("SessionInfo()",
+                     verbatimTextOutput("session_info",
+                                        # Not sure why, but this displays the whole thing without cutting it off.
+                                        placeholder = TRUE))
   )
 
 )
@@ -813,6 +874,11 @@ server <- function(input, output, session) {
   output$pillai_p_message <- renderPrint({
     cat("Here is the p-value. If it's less than 0.05, it means the difference between the two vowels is statistically significant.")
   })
+  
+  
+  ## About page ----
+  output$session_info <- renderPrint({  as.character(sessioninfo::session_info())  })
+
 }
 
 # Run the application 
