@@ -92,7 +92,7 @@ allwords <- c("")
 ui <- fluidPage(
   
   # Application title
-  titlePanel("LING 580R Sociolinguistic Fieldwork: Acoustic Analysis"),
+  titlePanel("Joey's Handy-Dandy Tool for Visualizing DARLA data"),
   
   tabsetPanel(
     type = "pills",
