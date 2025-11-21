@@ -489,6 +489,14 @@ server <- function(input, output, session) {
     req(input$uploaded_data)
     read_csv(input$uploaded_data$datapath, show_col_types = FALSE) %>%
       process_data()
+    withProgress(message = "Processing…",
+                detail = "This may take a few seconds.",
+                value =- 0, 
+                {
+                  req(input$uploaded_data)
+                  read_csv(input$uploaded_data$datapath, show_col_types = FALSE) %>%
+                    process_data()
+                })
   })
   
   midpoints_df <- eventReactive(input$process_uploaded_button, {
